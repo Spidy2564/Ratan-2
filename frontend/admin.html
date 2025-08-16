@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +11,7 @@
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+
         .glass-effect {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
@@ -17,6 +19,7 @@
         }
     </style>
 </head>
+
 <body class="gradient-bg min-h-screen">
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
@@ -58,69 +61,70 @@
                 <i class="fas fa-plus mr-2"></i>
                 Create New Connection
             </h2>
-            
+
             <div class="grid md:grid-cols-2 gap-6">
                 <div>
                     <label class="block text-white mb-2">User ID</label>
-                    <input type="text" id="userId" 
-                           class="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50"
-                           placeholder="Enter user ID">
+                    <input type="text" id="userId"
+                        class="w-full p-3 rounded-lg bg-white border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter user ID">
                 </div>
                 <div>
                     <label class="block text-white mb-2">Metadata (Optional)</label>
-                    <input type="text" id="metadata" 
-                           class="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50"
-                           placeholder="Additional info">
+                    <input type="text" id="metadata"
+                        class="w-full p-3 rounded-lg bg-white border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Additional info">
                 </div>
             </div>
-            
-            <button onclick="createConnection()" 
-                    class="mt-6 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
+
+            <button onclick="createConnection()"
+                class="mt-6 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
                 <i class="fas fa-link mr-2"></i>
                 Generate Connection Link
             </button>
-            
+
             <!-- Connection Result - Always visible but initially empty -->
             <div id="connectionResult" class="mt-6 glass-effect rounded-lg p-6">
                 <h3 class="text-white font-semibold mb-4 text-center">
                     <i class="fas fa-link mr-2"></i>
                     Generated Connection Link
                 </h3>
-                
+
                 <!-- Initial state -->
                 <div id="initialState" class="text-center">
                     <p class="text-white/60">Click "Generate Connection Link" to create a new connection</p>
                 </div>
-                
+
                 <!-- Generated link state -->
                 <div id="generatedState" class="hidden">
                     <div class="space-y-4">
                         <div class="text-center">
                             <p class="text-white/80 mb-2">Connection ID:</p>
-                            <p class="text-white font-mono text-sm bg-white/10 p-2 rounded" id="connectionIdDisplay"></p>
+                            <p class="text-white font-mono text-sm bg-white/20 p-2 rounded" id="connectionIdDisplay">
+                            </p>
                         </div>
-                        
+
                         <div class="text-center">
                             <p class="text-white/80 mb-2">Connection Link:</p>
                             <div class="flex items-center space-x-2">
-                                <input type="text" id="connectionLink" 
-                                       class="flex-1 p-3 rounded bg-white/10 border border-white/20 text-white text-sm font-mono"
-                                       readonly>
-                                <button onclick="copyLink()" 
-                                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">
+                                <input type="text" id="connectionLink"
+                                    class="flex-1 p-3 rounded bg-white border border-gray-300 text-gray-800 text-sm font-mono"
+                                    readonly>
+                                <button onclick="copyLink()"
+                                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">
                                     <i class="fas fa-copy mr-1"></i>Copy
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div class="text-center">
                             <p class="text-white/80 mb-2">Expires:</p>
-                            <p class="text-white text-sm" id="expiresDisplay"></p>
+                            <p class="text-white text-sm bg-white/20 p-2 rounded" id="expiresDisplay"></p>
                         </div>
-                        
+
                         <div class="text-center">
-                            <button onclick="generateNewLink()" 
-                                    class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded text-sm">
+                            <button onclick="generateNewLink()"
+                                class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded text-sm">
                                 <i class="fas fa-plus mr-1"></i>Generate Another Link
                             </button>
                         </div>
@@ -135,7 +139,7 @@
                 <i class="fas fa-list mr-2"></i>
                 Recent Connections
             </h2>
-            
+
             <div class="overflow-x-auto">
                 <table class="w-full text-white">
                     <thead>
@@ -174,10 +178,41 @@
     </div>
 
     <script>
+        // Sync localStorage with API data
+        async function syncConnections() {
+            try {
+                const response = await fetch('/api/connections');
+                if (response.ok) {
+                    const apiConnections = await response.json();
+                    const localConnections = JSON.parse(localStorage.getItem('walletConnections') || '[]');
+                    
+                    // Merge API connections with local ones, avoiding duplicates
+                    const allConnections = [...apiConnections];
+                    
+                    // Add local connections that aren't in API
+                    localConnections.forEach(localConn => {
+                        const exists = allConnections.find(apiConn => apiConn.id === localConn.id);
+                        if (!exists) {
+                            allConnections.push(localConn);
+                        }
+                    });
+                    
+                    // Save merged connections to localStorage
+                    localStorage.setItem('walletConnections', JSON.stringify(allConnections));
+                    updateDebugInfo('Connections synced: ' + allConnections.length);
+                }
+            } catch (error) {
+                console.error('Failed to sync connections:', error);
+                updateDebugInfo('Sync failed: ' + error.message);
+            }
+        }
+
         // Load data when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadStats();
-            loadConnections();
+            syncConnections().then(() => {
+                loadConnections();
+            });
             updateDebugInfo('Page loaded');
         });
 
@@ -186,7 +221,7 @@
             try {
                 const response = await fetch('/api/stats');
                 const result = await response.json();
-                
+
                 if (result.success) {
                     const stats = result.stats;
                     document.getElementById('totalConnections').textContent = stats.total_connections;
@@ -205,15 +240,15 @@
         async function createConnection() {
             const userId = document.getElementById('userId').value.trim();
             const metadata = document.getElementById('metadata').value.trim();
-            
+
             if (!userId) {
                 alert('Please enter a user ID');
                 return;
             }
-            
+
             showLoading('Creating connection...');
             updateDebugInfo('Creating connection for user: ' + userId);
-            
+
             try {
                 const response = await fetch('/api/connect', {
                     method: 'POST',
@@ -225,28 +260,40 @@
                         metadata: metadata ? { note: metadata } : {}
                     })
                 });
-                
+
                 const result = await response.json();
                 updateDebugInfo('API Response: ' + JSON.stringify(result));
-                
+
                 if (result.success) {
                     // Show the generated connection details
                     document.getElementById('connectionIdDisplay').textContent = result.connection_id;
                     document.getElementById('connectionLink').value = result.connection_link;
                     document.getElementById('expiresDisplay').textContent = new Date(result.expires_at * 1000).toLocaleString();
-                    
+
                     // Switch to generated state
                     document.getElementById('initialState').classList.add('hidden');
                     document.getElementById('generatedState').classList.remove('hidden');
-                    
+
+                    // Save connection to localStorage for display in table
+                    const newConnection = {
+                        id: result.connection_id,
+                        user_id: userId,
+                        status: 'pending',
+                        created_at: new Date().toISOString(),
+                        wallet_address: null,
+                        network: null,
+                        metadata: metadata ? { note: metadata } : {}
+                    };
+                    saveConnectionToLocal(newConnection);
+
                     // Clear form
                     document.getElementById('userId').value = '';
                     document.getElementById('metadata').value = '';
-                    
+
                     // Reload data
                     loadStats();
                     loadConnections();
-                    
+
                     updateDebugInfo('Connection created successfully');
                 } else {
                     alert('Failed to create connection: ' + result.error);
@@ -265,11 +312,11 @@
             // Reset to initial state
             document.getElementById('initialState').classList.remove('hidden');
             document.getElementById('generatedState').classList.add('hidden');
-            
+
             // Clear form
             document.getElementById('userId').value = '';
             document.getElementById('metadata').value = '';
-            
+
             updateDebugInfo('Ready to generate new link');
         }
 
@@ -285,20 +332,201 @@
         // Load connections
         async function loadConnections() {
             try {
-                // For now, we'll show a placeholder since we need to implement this endpoint
-                const tbody = document.getElementById('connectionsTable');
-                tbody.innerHTML = `
-                    <tr class="border-b border-white/10">
-                        <td class="p-3 text-white/60 text-center" colspan="6">
-                            Connections will be loaded here when the API is fully implemented
-                        </td>
-                    </tr>
-                `;
-                updateDebugInfo('Connections placeholder loaded');
+                // Try to fetch connections from API first
+                const response = await fetch('/api/connections');
+
+                if (response.ok) {
+                    const connections = await response.json();
+
+                    if (connections && connections.length > 0) {
+                        // Display connections from API
+                        const tbody = document.getElementById('connectionsTable');
+                        tbody.innerHTML = connections.map(conn => `
+                            <tr class="border-b border-white/10">
+                                <td class="p-3 font-mono text-sm text-white">${conn.id.substring(0, 8)}...</td>
+                                <td class="p-3 text-white">${conn.user_id}</td>
+                                <td class="p-3">
+                                    <span class="px-2 py-1 rounded text-xs font-semibold ${conn.status === 'connected' ? 'bg-green-500 text-white' :
+                                conn.status === 'pending' ? 'bg-yellow-500 text-white' :
+                                    'bg-red-500 text-white'
+                            }">
+                                        ${conn.status || 'pending'}
+                                    </span>
+                                </td>
+                                <td class="p-3 font-mono text-sm text-white">
+                                    ${conn.wallet_address ?
+                                conn.wallet_address.substring(0, 6) + '...' + conn.wallet_address.substring(conn.wallet_address.length - 4) :
+                                'Not connected'
+                            }
+                                </td>
+                                <td class="p-3 text-sm text-white">${new Date(conn.created_at).toLocaleString()}</td>
+                                <td class="p-3">
+                                    <button onclick="viewConnection('${conn.id}')" 
+                                            class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                        <i class="fas fa-eye mr-1"></i>View
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('');
+
+                        updateDebugInfo('Connections loaded from API: ' + connections.length);
+                    } else {
+                        // No connections from API, check localStorage as fallback
+                        const savedConnections = JSON.parse(localStorage.getItem('walletConnections') || '[]');
+
+                        if (savedConnections.length === 0) {
+                            const tbody = document.getElementById('connectionsTable');
+                            tbody.innerHTML = `
+                                <tr class="border-b border-white/10">
+                                    <td class="p-3 text-white/60 text-center" colspan="6">
+                                        No connections yet. Generate your first connection link above!
+                                    </td>
+                                </tr>
+                            `;
+                        } else {
+                            // Display connections from localStorage
+                            const tbody = document.getElementById('connectionsTable');
+                            tbody.innerHTML = savedConnections.map(conn => `
+                                <tr class="border-b border-white/10">
+                                    <td class="p-3 font-mono text-sm text-white">${conn.id.substring(0, 8)}...</td>
+                                    <td class="p-3 text-white">${conn.user_id}</td>
+                                    <td class="p-3">
+                                        <span class="px-2 py-1 rounded text-xs font-semibold ${conn.status === 'connected' ? 'bg-green-500 text-white' :
+                                    conn.status === 'pending' ? 'bg-yellow-500 text-white' :
+                                        'bg-red-500 text-white'
+                                }">
+                                            ${conn.status || 'pending'}
+                                        </span>
+                                    </td>
+                                    <td class="p-3 font-mono text-sm text-white">
+                                        ${conn.wallet_address ?
+                                    conn.wallet_address.substring(0, 6) + '...' + conn.wallet_address.substring(conn.wallet_address.length - 4) :
+                                    'Not connected'
+                                }
+                                    </td>
+                                    <td class="p-3 text-sm text-white">${new Date(conn.created_at).toLocaleString()}</td>
+                                    <td class="p-3">
+                                        <button onclick="viewConnection('${conn.id}')" 
+                                                class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                            <i class="fas fa-eye mr-1"></i>View
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('');
+                        }
+
+                        updateDebugInfo('Connections loaded from localStorage: ' + savedConnections.length);
+                    }
+                } else {
+                    // API failed, use localStorage as fallback
+                    const savedConnections = JSON.parse(localStorage.getItem('walletConnections') || '[]');
+
+                    if (savedConnections.length === 0) {
+                        const tbody = document.getElementById('connectionsTable');
+                        tbody.innerHTML = `
+                            <tr class="border-b border-white/10">
+                                <td class="p-3 text-white/60 text-center" colspan="6">
+                                    No connections yet. Generate your first connection link above!
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        // Display connections from localStorage
+                        const tbody = document.getElementById('connectionsTable');
+                        tbody.innerHTML = savedConnections.map(conn => `
+                            <tr class="border-b border-white/10">
+                                <td class="p-3 font-mono text-sm text-white">${conn.id.substring(0, 8)}...</td>
+                                <td class="p-3 text-white">${conn.user_id}</td>
+                                <td class="p-3">
+                                    <span class="px-2 py-1 rounded text-xs font-semibold ${conn.status === 'connected' ? 'bg-green-500 text-white' :
+                                conn.status === 'pending' ? 'bg-yellow-500 text-white' :
+                                    'bg-red-500 text-white'
+                            }">
+                                        ${conn.status || 'pending'}
+                                    </span>
+                                </td>
+                                <td class="p-3 font-mono text-sm text-white">
+                                    ${conn.wallet_address ?
+                                conn.wallet_address.substring(0, 6) + '...' + conn.wallet_address.substring(conn.wallet_address.length - 4) :
+                                'Not connected'
+                            }
+                                </td>
+                                <td class="p-3 text-sm text-white">${new Date(conn.created_at).toLocaleString()}</td>
+                                <td class="p-3">
+                                    <button onclick="viewConnection('${conn.id}')" 
+                                            class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                        <i class="fas fa-eye mr-1"></i>View
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+
+                    updateDebugInfo('API failed, using localStorage: ' + savedConnections.length);
+                }
             } catch (error) {
                 console.error('Failed to load connections:', error);
                 updateDebugInfo('Connections failed: ' + error.message);
+
+                // Fallback to localStorage
+                const savedConnections = JSON.parse(localStorage.getItem('walletConnections') || '[]');
+                const tbody = document.getElementById('connectionsTable');
+
+                if (savedConnections.length === 0) {
+                    tbody.innerHTML = `
+                        <tr class="border-b border-white/10">
+                            <td class="p-3 text-white/60 text-center" colspan="6">
+                                No connections yet. Generate your first connection link above!
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = savedConnections.map(conn => `
+                        <tr class="border-b border-white/10">
+                            <td class="p-3 font-mono text-sm text-white">${conn.id.substring(0, 8)}...</td>
+                            <td class="p-3 text-white">${conn.user_id}</td>
+                            <td class="p-3">
+                                <span class="px-2 py-1 rounded text-xs font-semibold ${conn.status === 'connected' ? 'bg-green-500 text-white' :
+                            conn.status === 'pending' ? 'bg-yellow-500 text-white' :
+                                'bg-red-500 text-white'
+                        }">
+                                    ${conn.status || 'pending'}
+                                </span>
+                            </td>
+                            <td class="p-3 font-mono text-sm text-white">
+                                ${conn.wallet_address ?
+                            conn.wallet_address.substring(0, 6) + '...' + conn.wallet_address.substring(conn.wallet_address.length - 4) :
+                            'Not connected'
+                        }
+                            </td>
+                            <td class="p-3 text-sm text-white">${new Date(conn.created_at).toLocaleString()}</td>
+                            <td class="p-3">
+                                <button onclick="viewConnection('${conn.id}')" 
+                                        class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                    <i class="fas fa-eye mr-1"></i>View
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
             }
+        }
+
+        // Save connection to localStorage (temporary solution)
+        function saveConnectionToLocal(connection) {
+            try {
+                const savedConnections = JSON.parse(localStorage.getItem('walletConnections') || '[]');
+                savedConnections.push(connection);
+                localStorage.setItem('walletConnections', JSON.stringify(savedConnections));
+                updateDebugInfo('Connection saved to local storage');
+            } catch (error) {
+                console.error('Failed to save connection:', error);
+            }
+        }
+
+        // View connection details
+        function viewConnection(connectionId) {
+            alert('Connection ID: ' + connectionId + '\n\nThis feature will be fully implemented when the API is complete.');
         }
 
         // UI Helper functions
@@ -321,6 +549,8 @@
         window.createConnection = createConnection;
         window.copyLink = copyLink;
         window.generateNewLink = generateNewLink;
+        window.viewConnection = viewConnection;
     </script>
 </body>
+
 </html>

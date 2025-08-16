@@ -1,276 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connect Wallet - Wallet Platform</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .wallet-card {
-            transition: all 0.3s ease;
-        }
-
-        .wallet-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>WalletConnect v2 Example</title>
 </head>
+<body>
+  <h2>WalletConnect v2 Demo</h2>
+  <button id="connectBtn">Connect Wallet</button>
 
-<body class="gradient-bg min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <!-- Header -->
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-bold text-white mb-4">
-                <i class="fas fa-link mr-3"></i>
-                Connect Your Wallet
-            </h1>
-            <p class="text-white/80 text-lg">Complete the connection to proceed</p>
-        </div>
+  <script type="module">
+    import { EthereumProvider } from "https://esm.sh/@walletconnect/ethereum-provider@2.11.1";
 
-        <!-- Connection Status -->
-        <div id="connectionStatus" class="glass-effect rounded-lg p-6 mb-8 text-center">
-            <div class="flex items-center justify-center mb-4">
-                <div id="statusIcon"
-                    class="w-8 h-8 rounded-full mr-3 pulse bg-yellow-500 flex items-center justify-center">
-                    <i class="fas fa-clock text-white"></i>
-                </div>
-                <h2 id="statusText" class="text-xl font-semibold text-white">Waiting for Connection</h2>
-            </div>
-            <div id="connectionInfo" class="text-white/80">
-                <p>Connection ID: <span id="connectionId" class="font-mono text-sm"></span></p>
-                <p>Expires: <span id="expiresAt" class="text-sm"></span></p>
-            </div>
-        </div>
+    async function connectWalletConnect() {
+      try {
+        console.log("Attempting to connect WalletConnect...");
 
-        <!-- Wallet Connection Section -->
-        <div class="glass-effect rounded-lg p-8 mb-8">
-            <h2 class="text-2xl font-bold text-white mb-6 text-center">
-                <i class="fas fa-wallet mr-2"></i>
-                Choose Your Wallet
-            </h2>
-
-            <div class="grid md:grid-cols-2 gap-6">
-                <!-- MetaMask -->
-                <div class="wallet-card glass-effect rounded-lg p-6 cursor-pointer" onclick="connectWallet('metamask')">
-                    <div class="flex items-center mb-4">
-                        <i class="fab fa-ethereum text-3xl text-orange-500 mr-3"></i>
-                        <h3 class="text-xl font-semibold text-white">MetaMask</h3>
-                    </div>
-                    <p class="text-white/70">Connect with MetaMask wallet</p>
-                </div>
-
-                <!-- WalletConnect -->
-                <div class="wallet-card glass-effect rounded-lg p-6 cursor-pointer"
-                    onclick="connectWallet('walletconnect')">
-                    <div class="flex items-center mb-4">
-                        <i class="fas fa-mobile-alt text-3xl text-blue-500 mr-3"></i>
-                        <h3 class="text-xl font-semibold text-white">WalletConnect</h3>
-                    </div>
-                    <p class="text-white/70">Connect with mobile wallets</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Connection Details -->
-        <div id="connectionDetails" class="glass-effect rounded-lg p-8 hidden">
-            <h2 class="text-2xl font-bold text-white mb-6 text-center">
-                <i class="fas fa-info-circle mr-2"></i>
-                Connection Details
-            </h2>
-
-            <div class="space-y-4">
-                <div class="flex justify-between">
-                    <span class="text-white/80">Wallet Address:</span>
-                    <span id="walletAddress" class="text-white font-mono text-sm"></span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-white/80">Network:</span>
-                    <span id="network" class="text-white"></span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-white/80">Status:</span>
-                    <span id="connectionStatusText" class="text-green-500 font-semibold">Connected</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Success Message -->
-        <div id="successMessage" class="glass-effect rounded-lg p-6 text-center hidden">
-            <div class="text-green-500 text-6xl mb-4">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <h2 class="text-2xl font-bold text-white mb-2">Connection Successful!</h2>
-            <p class="text-white/80">Your wallet has been connected successfully.</p>
-        </div>
-
-        <!-- Error Message -->
-        <div id="errorMessage" class="glass-effect rounded-lg p-6 text-center hidden">
-            <div class="text-red-500 text-6xl mb-4">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <h2 class="text-2xl font-bold text-white mb-2">Connection Failed</h2>
-            <p id="errorText" class="text-white/80">Something went wrong. Please try again.</p>
-        </div>
-    </div>
-
-    <script>
-        // Get connection ID from URL
-        function getConnectionId() {
-            const pathParts = window.location.pathname.split('/');
-            return pathParts[pathParts.length - 1];
-        }
-
-        // Load connection details
-        async function loadConnectionDetails() {
-            const connectionId = getConnectionId();
-            if (!connectionId) return;
-
-            try {
-                const response = await fetch(`/api/connections/${connectionId}`);
-                if (response.ok) {
-                    const connection = await response.json();
-                    document.getElementById('connectionId').textContent = connection.id;
-                    document.getElementById('expiresAt').textContent = new Date(connection.expires_at * 1000).toLocaleString();
-                }
-            } catch (error) {
-                console.error('Failed to load connection details:', error);
-            }
-        }
-
-        // Connect wallet function
-        async function connectWallet(walletType) {
-            const connectionId = getConnectionId();
-            if (!connectionId) {
-                showError('No connection ID found');
-                return;
-            }
-
-            try {
-                if (walletType === 'metamask') {
-                    await connectMetaMask(connectionId);
-                } else if (walletType === 'walletconnect') {
-                    await connectWalletConnect(connectionId);
-                }
-            } catch (error) {
-                showError('Failed to connect wallet: ' + error.message);
-            }
-        }
-
-        // Connect to MetaMask
-        async function connectMetaMask(connectionId) {
-            if (typeof window.ethereum === 'undefined') {
-                throw new Error('MetaMask is not installed. Please install MetaMask extension.');
-            }
-
-            try {
-                // Request account access
-                const accounts = await window.ethereum.request({
-                    method: 'eth_requestAccounts'
-                });
-
-                if (accounts.length === 0) {
-                    throw new Error('No accounts found');
-                }
-
-                const walletAddress = accounts[0];
-                const network = await window.ethereum.request({ method: 'eth_chainId' });
-
-                // Update connection status
-                await updateConnection(connectionId, {
-                    wallet_address: walletAddress,
-                    network: network,
-                    status: 'connected'
-                });
-
-                showSuccess();
-                updateConnectionDetails(walletAddress, network);
-
-            } catch (error) {
-                throw new Error('Failed to connect to MetaMask: ' + error.message);
-            }
-        }
-
-        // Connect to WalletConnect
-        async function connectWalletConnect(connectionId) {
-            // For now, show a placeholder
-            showError('WalletConnect integration coming soon. Please use MetaMask for now.');
-        }
-
-        // Update connection on server
-        async function updateConnection(connectionId, data) {
-            try {
-                const response = await fetch(`/api/connections/${connectionId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to update connection');
-                }
-
-                return await response.json();
-            } catch (error) {
-                throw new Error('Failed to update connection: ' + error.message);
-            }
-        }
-
-        // Update connection details display
-        function updateConnectionDetails(walletAddress, network) {
-            document.getElementById('walletAddress').textContent = walletAddress.substring(0, 6) + '...' + walletAddress.substring(walletAddress.length - 4);
-            document.getElementById('network').textContent = network;
-            document.getElementById('connectionDetails').classList.remove('hidden');
-        }
-
-        // Show success message
-        function showSuccess() {
-            document.getElementById('successMessage').classList.remove('hidden');
-            document.getElementById('connectionStatus').classList.add('hidden');
-        }
-
-        // Show error message
-        function showError(message) {
-            document.getElementById('errorText').textContent = message;
-            document.getElementById('errorMessage').classList.remove('hidden');
-            document.getElementById('connectionStatus').classList.add('hidden');
-        }
-
-        // Load connection details when page loads
-        document.addEventListener('DOMContentLoaded', function () {
-            loadConnectionDetails();
+        const provider = await EthereumProvider.init({
+          projectId: "965ff7dc5a6c6d555317fbeb6553d372", // Get from https://cloud.walletconnect.com
+          chains: [1], // Ethereum mainnet (use 5 for Goerli)
+          showQrModal: true,
         });
-    </script>
-</body>
 
+        // Open QR modal
+        await provider.connect();
+
+        console.log("✅ Connected accounts:", provider.accounts);
+        alert("Connected: " + provider.accounts[0]);
+      } catch (err) {
+        console.error("🚨 WalletConnect initialization error:", err);
+        alert("Failed: " + err.message);
+      }
+    }
+
+    document.getElementById("connectBtn").onclick = connectWalletConnect;
+  </script>
+</body>
 </html>

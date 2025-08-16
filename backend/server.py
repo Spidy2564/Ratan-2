@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import json
 import os
@@ -27,11 +27,11 @@ def save_database(data):
 # Routes
 @app.route('/')
 def index():
-    return render_template('connect.html')
+    return send_from_directory('../frontend', 'index.html')
 
 @app.route('/admin')
 def admin():
-    return render_template('admin.html')
+    return send_from_directory('../frontend', 'admin.html')
 
 @app.route('/api/health')
 def health_check():
@@ -82,12 +82,21 @@ def create_connection():
 @app.route('/connect/<connection_id>')
 def connect_page(connection_id):
     """Connection page for users"""
-    return render_template('connect.html')
+    return send_from_directory('../frontend', 'connect.html')
 
 @app.route('/mobile/<connection_id>')
 def mobile_page(connection_id):
     """Mobile-optimized connection page"""
-    return render_template('mobile.html')
+    return send_from_directory('../frontend', 'mobile.html')
+
+@app.route('/api/connections')
+def get_all_connections():
+    """Get all connections for admin dashboard"""
+    try:
+        db = load_database()
+        return jsonify(db['connections'])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/connections/<connection_id>')
 def get_connection(connection_id):
@@ -127,15 +136,6 @@ def update_connection(connection_id):
         
         return jsonify({'error': 'Connection not found'}), 404
         
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/connections')
-def get_all_connections():
-    """Get all connections"""
-    try:
-        db = load_database()
-        return jsonify(db['connections'])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

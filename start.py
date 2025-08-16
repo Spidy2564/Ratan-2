@@ -73,40 +73,11 @@ def start_backend():
         
         print("✅ Backend server started at http://localhost:5000")
         print("📊 Admin dashboard: http://localhost:5000/admin")
+        print("🌐 Main site: http://localhost:5000")
         
         return process
     except Exception as e:
         print(f"❌ Error starting backend: {e}")
-        return None
-
-def start_frontend():
-    """Start the frontend server"""
-    print("\n🌐 Starting frontend server...")
-    
-    try:
-        # Get the current working directory
-        current_dir = os.getcwd()
-        frontend_dir = os.path.join(current_dir, "frontend")
-        
-        # Check if frontend directory exists
-        if not os.path.exists(frontend_dir):
-            print(f"❌ Frontend directory not found at: {frontend_dir}")
-            return None
-        
-        # Start HTTP server from the frontend directory
-        process = subprocess.Popen(
-            [sys.executable, "-m", "http.server", "8000"],
-            cwd=frontend_dir
-        )
-        
-        # Wait a moment for server to start
-        time.sleep(2)
-        
-        print("✅ Frontend server started at http://localhost:8000")
-        
-        return process
-    except Exception as e:
-        print(f"❌ Error starting frontend: {e}")
         return None
 
 def open_browsers():
@@ -114,8 +85,8 @@ def open_browsers():
     print("\n🌍 Opening platform in browser...")
     
     try:
-        # Open frontend
-        webbrowser.open("http://localhost:8000")
+        # Open main site
+        webbrowser.open("http://localhost:5000")
         time.sleep(1)
         
         # Open admin dashboard
@@ -137,17 +108,10 @@ def main():
         print("❌ Failed to install dependencies. Exiting.")
         sys.exit(1)
     
-    # Start backend
+    # Start backend (now serves both backend API and frontend pages)
     backend_process = start_backend()
     if not backend_process:
         print("❌ Failed to start backend. Exiting.")
-        sys.exit(1)
-    
-    # Start frontend
-    frontend_process = start_frontend()
-    if not frontend_process:
-        print("❌ Failed to start frontend. Exiting.")
-        backend_process.terminate()
         sys.exit(1)
     
     # Open browsers
@@ -159,22 +123,20 @@ def main():
     print("2. Share the generated links with users")
     print("3. Users can connect their wallets through the links")
     print("4. Monitor connections and transactions in the admin dashboard")
-    print("\n🛑 Press Ctrl+C to stop the servers")
+    print("\n🛑 Press Ctrl+C to stop the server")
     
     try:
         # Keep the script running
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\n🛑 Stopping servers...")
+        print("\n🛑 Stopping server...")
         
-        # Terminate processes
+        # Terminate process
         if backend_process:
             backend_process.terminate()
-        if frontend_process:
-            frontend_process.terminate()
         
-        print("✅ Servers stopped")
+        print("✅ Server stopped")
         print("👋 Goodbye!")
 
 if __name__ == "__main__":
