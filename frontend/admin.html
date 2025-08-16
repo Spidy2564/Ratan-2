@@ -80,17 +80,50 @@
                 Generate Connection Link
             </button>
             
-            <div id="connectionResult" class="mt-4 hidden">
-                <div class="glass-effect rounded-lg p-4">
-                    <h3 class="text-white font-semibold mb-2">Connection Link Generated:</h3>
-                    <div class="flex items-center space-x-2">
-                        <input type="text" id="connectionLink" 
-                               class="flex-1 p-2 rounded bg-white/10 border border-white/20 text-white text-sm"
-                               readonly>
-                        <button onclick="copyLink()" 
-                                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">
-                            <i class="fas fa-copy mr-1"></i>Copy
-                        </button>
+            <!-- Connection Result - Always visible but initially empty -->
+            <div id="connectionResult" class="mt-6 glass-effect rounded-lg p-6">
+                <h3 class="text-white font-semibold mb-4 text-center">
+                    <i class="fas fa-link mr-2"></i>
+                    Generated Connection Link
+                </h3>
+                
+                <!-- Initial state -->
+                <div id="initialState" class="text-center">
+                    <p class="text-white/60">Click "Generate Connection Link" to create a new connection</p>
+                </div>
+                
+                <!-- Generated link state -->
+                <div id="generatedState" class="hidden">
+                    <div class="space-y-4">
+                        <div class="text-center">
+                            <p class="text-white/80 mb-2">Connection ID:</p>
+                            <p class="text-white font-mono text-sm bg-white/10 p-2 rounded" id="connectionIdDisplay"></p>
+                        </div>
+                        
+                        <div class="text-center">
+                            <p class="text-white/80 mb-2">Connection Link:</p>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" id="connectionLink" 
+                                       class="flex-1 p-3 rounded bg-white/10 border border-white/20 text-white text-sm font-mono"
+                                       readonly>
+                                <button onclick="copyLink()" 
+                                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">
+                                    <i class="fas fa-copy mr-1"></i>Copy
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <p class="text-white/80 mb-2">Expires:</p>
+                            <p class="text-white text-sm" id="expiresDisplay"></p>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button onclick="generateNewLink()" 
+                                    class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded text-sm">
+                                <i class="fas fa-plus mr-1"></i>Generate Another Link
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -129,6 +162,15 @@
                 <p class="text-white" id="loadingText">Loading...</p>
             </div>
         </div>
+
+        <!-- Debug Info (for development) -->
+        <div class="glass-effect rounded-lg p-4 mt-4">
+            <h3 class="text-white font-semibold mb-2">Debug Info:</h3>
+            <div id="debugInfo" class="text-white/60 text-sm">
+                <p>API Status: <span id="apiStatus">Unknown</span></p>
+                <p>Last Response: <span id="lastResponse">None</span></p>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -136,6 +178,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadStats();
             loadConnections();
+            updateDebugInfo('Page loaded');
         });
 
         // Load platform statistics
@@ -151,8 +194,10 @@
                     document.getElementById('totalTransactions').textContent = stats.total_transactions;
                     document.getElementById('successRate').textContent = stats.success_rate.toFixed(1) + '%';
                 }
+                updateDebugInfo('Stats loaded successfully');
             } catch (error) {
                 console.error('Failed to load stats:', error);
+                updateDebugInfo('Stats failed: ' + error.message);
             }
         }
 
@@ -167,6 +212,7 @@
             }
             
             showLoading('Creating connection...');
+            updateDebugInfo('Creating connection for user: ' + userId);
             
             try {
                 const response = await fetch('/api/connect', {
@@ -181,10 +227,17 @@
                 });
                 
                 const result = await response.json();
+                updateDebugInfo('API Response: ' + JSON.stringify(result));
                 
                 if (result.success) {
+                    // Show the generated connection details
+                    document.getElementById('connectionIdDisplay').textContent = result.connection_id;
                     document.getElementById('connectionLink').value = result.connection_link;
-                    document.getElementById('connectionResult').classList.remove('hidden');
+                    document.getElementById('expiresDisplay').textContent = new Date(result.expires_at * 1000).toLocaleString();
+                    
+                    // Switch to generated state
+                    document.getElementById('initialState').classList.add('hidden');
+                    document.getElementById('generatedState').classList.remove('hidden');
                     
                     // Clear form
                     document.getElementById('userId').value = '';
@@ -193,14 +246,31 @@
                     // Reload data
                     loadStats();
                     loadConnections();
+                    
+                    updateDebugInfo('Connection created successfully');
                 } else {
                     alert('Failed to create connection: ' + result.error);
+                    updateDebugInfo('Connection failed: ' + result.error);
                 }
             } catch (error) {
                 alert('Failed to create connection: ' + error.message);
+                updateDebugInfo('Connection error: ' + error.message);
             } finally {
                 hideLoading();
             }
+        }
+
+        // Generate new link
+        function generateNewLink() {
+            // Reset to initial state
+            document.getElementById('initialState').classList.remove('hidden');
+            document.getElementById('generatedState').classList.add('hidden');
+            
+            // Clear form
+            document.getElementById('userId').value = '';
+            document.getElementById('metadata').value = '';
+            
+            updateDebugInfo('Ready to generate new link');
         }
 
         // Copy connection link
@@ -209,6 +279,7 @@
             linkInput.select();
             document.execCommand('copy');
             alert('Link copied to clipboard!');
+            updateDebugInfo('Link copied to clipboard');
         }
 
         // Load connections
@@ -223,8 +294,10 @@
                         </td>
                     </tr>
                 `;
+                updateDebugInfo('Connections placeholder loaded');
             } catch (error) {
                 console.error('Failed to load connections:', error);
+                updateDebugInfo('Connections failed: ' + error.message);
             }
         }
 
@@ -238,9 +311,16 @@
             document.getElementById('loadingModal').classList.add('hidden');
         }
 
+        // Debug helper
+        function updateDebugInfo(message) {
+            document.getElementById('lastResponse').textContent = message;
+            console.log('Debug:', message);
+        }
+
         // Export functions for global access
         window.createConnection = createConnection;
         window.copyLink = copyLink;
+        window.generateNewLink = generateNewLink;
     </script>
 </body>
 </html>

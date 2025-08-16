@@ -36,12 +36,12 @@
       "dest": "/frontend/mobile.html"
     },
     {
-      "src": "/",
-      "dest": "/frontend/index.html"
-    },
-    {
       "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg))",
       "dest": "/frontend/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/index.html"
     }
   ]
 }
