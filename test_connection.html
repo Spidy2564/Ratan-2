@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: rgba(0, 255, 0, 0.2); }
+        .error { background: rgba(255, 0, 0, 0.2); }
+        .info { background: rgba(0, 0, 255, 0.2); }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        .connection-id {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 Connection Test</h1>
+        
+        <div id="status"></div>
+        
+        <div>
+            <button onclick="testConnection()">Test Connection API</button>
+            <button onclick="createConnection()">Create New Connection</button>
+            <button onclick="checkConnection()">Check Connection Status</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const resultsDiv = document.getElementById('results');
+        
+        // Test connection ID
+        const testConnectionId = 'LIWKnT8XwdmSgb4WeSFPIHmxeRDb90KSUmRLZ-1YCN8';
+        
+        function addStatus(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            statusDiv.appendChild(div);
+        }
+        
+        function addResult(message) {
+            const div = document.createElement('div');
+            div.innerHTML = `<p>${message}</p>`;
+            resultsDiv.appendChild(div);
+        }
+        
+        async function testConnection() {
+            addStatus('🔍 Testing connection API...', 'info');
+            
+            try {
+                const response = await fetch(`http://localhost:5000/api/connections/${testConnectionId}`);
+                const connection = await response.json();
+                
+                if (connection.error) {
+                    addStatus('❌ Connection not found', 'error');
+                    addResult(`Error: ${connection.error}`);
+                } else {
+                    addStatus('✅ Connection found', 'success');
+                    addResult(`
+                        <strong>Connection Details:</strong><br>
+                        ID: ${connection.id}<br>
+                        Status: ${connection.status}<br>
+                        Network: ${connection.network || 'Not set'}<br>
+                        Wallet: ${connection.wallet_address || 'Not connected'}<br>
+                        Created: ${new Date(connection.created_at).toLocaleString()}<br>
+                        Expires: ${new Date(connection.expires_at * 1000).toLocaleString()}
+                    `);
+                }
+            } catch (error) {
+                addStatus('❌ API request failed', 'error');
+                addResult(`Error: ${error.message}`);
+            }
+        }
+        
+        async function createConnection() {
+            addStatus('🔍 Creating new connection...', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/connect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: 'test_user_' + Date.now(),
+                        metadata: {
+                            test: true,
+                            created_at: new Date().toISOString()
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    addStatus('✅ New connection created', 'success');
+                    addResult(`
+                        <strong>New Connection:</strong><br>
+                        ID: <span class="connection-id">${result.connection.id}</span><br>
+                        Link: <a href="http://localhost:5000/connect/${result.connection.id}" target="_blank">http://localhost:5000/connect/${result.connection.id}</a>
+                    `);
+                } else {
+                    addStatus('❌ Failed to create connection', 'error');
+                    addResult(`Error: ${result.error}`);
+                }
+            } catch (error) {
+                addStatus('❌ Request failed', 'error');
+                addResult(`Error: ${error.message}`);
+            }
+        }
+        
+        async function checkConnection() {
+            addStatus('🔍 Checking connection status...', 'info');
+            
+            try {
+                const response = await fetch(`http://localhost:5000/api/connections/${testConnectionId}`);
+                const connection = await response.json();
+                
+                if (connection.error) {
+                    addStatus('❌ Connection not found', 'error');
+                } else {
+                    const now = Date.now() / 1000;
+                    const isExpired = connection.expires_at && now > connection.expires_at;
+                    
+                    if (isExpired) {
+                        addStatus('⚠️ Connection expired', 'error');
+                    } else if (connection.status === 'connected') {
+                        addStatus('✅ Connection active and connected', 'success');
+                    } else {
+                        addStatus('⏳ Connection pending', 'info');
+                    }
+                    
+                    addResult(`
+                        <strong>Status Check:</strong><br>
+                        Status: ${connection.status}<br>
+                        Connected: ${connection.wallet_address ? 'Yes' : 'No'}<br>
+                        Expired: ${isExpired ? 'Yes' : 'No'}<br>
+                        Time left: ${Math.max(0, Math.floor((connection.expires_at - now) / 60))} minutes
+                    `);
+                }
+            } catch (error) {
+                addStatus('❌ Status check failed', 'error');
+                addResult(`Error: ${error.message}`);
+            }
+        }
+        
+        // Auto-test on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testConnection();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WalletConnect Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: rgba(0, 255, 0, 0.2); }
+        .error { background: rgba(255, 0, 0, 0.2); }
+        .info { background: rgba(0, 0, 255, 0.2); }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        button:disabled { background: #cccccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 WalletConnect Library Test</h1>
+        
+        <div id="status"></div>
+        
+        <div>
+            <button onclick="testLibrary()">Test Library Loading</button>
+            <button onclick="testConnection()" id="connectBtn" disabled>Test Connection</button>
+            <button onclick="location.reload()">Refresh Page</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <!-- Load libraries -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script src="https://unpkg.com/@walletconnect/web3-provider@2.10.7/dist/umd/index.min.js"></script>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        const resultsDiv = document.getElementById('results');
+        const connectBtn = document.getElementById('connectBtn');
+        
+        function addStatus(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            statusDiv.appendChild(div);
+        }
+        
+        function addResult(message) {
+            const div = document.createElement('div');
+            div.innerHTML = `<p>${message}</p>`;
+            resultsDiv.appendChild(div);
+        }
+        
+        async function testLibrary() {
+            addStatus('🔍 Testing library loading...', 'info');
+            
+            // Test ethers
+            if (typeof ethers !== 'undefined') {
+                addStatus('✅ Ethers.js loaded successfully', 'success');
+            } else {
+                addStatus('❌ Ethers.js failed to load', 'error');
+                return;
+            }
+            
+            // Test WalletConnect
+            if (typeof WalletConnectProvider !== 'undefined') {
+                addStatus('✅ WalletConnect library loaded successfully', 'success');
+                connectBtn.disabled = false;
+            } else {
+                addStatus('❌ WalletConnect library failed to load', 'error');
+                addResult('Try refreshing the page or check your internet connection');
+                return;
+            }
+            
+            // Test QR Code library
+            if (typeof QRCode !== 'undefined') {
+                addStatus('✅ QR Code library loaded successfully', 'success');
+            } else {
+                addStatus('⚠️ QR Code library not loaded (will use fallback)', 'info');
+            }
+            
+            addStatus('🎉 All libraries loaded successfully!', 'success');
+        }
+        
+        async function testConnection() {
+            addResult('🔄 Testing WalletConnect connection...');
+            
+            try {
+                // Test WalletConnect initialization
+                const provider = await WalletConnectProvider.init({
+                    projectId: '9aa3d95b3bc440fa88ea12eaa4456161',
+                    chains: [1],
+                    showQrModal: true,
+                });
+                
+                addResult('✅ WalletConnect provider initialized successfully');
+                
+                // Test connection (this will show QR modal)
+                await provider.connect();
+                
+                addResult('✅ WalletConnect connection successful!');
+                
+            } catch (error) {
+                addResult(`❌ WalletConnect error: ${error.message}`);
+            }
+        }
+        
+        // Auto-test on page load
+        window.addEventListener('load', () => {
+            setTimeout(testLibrary, 1000);
+        });
+    </script>
+</body>
+</html> 

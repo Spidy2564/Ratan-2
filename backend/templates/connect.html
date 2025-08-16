@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect Wallet - Wallet Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .wallet-card {
+            transition: all 0.3s ease;
+        }
+        .wallet-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-white mb-4">
+                <i class="fas fa-link mr-3"></i>
+                Connect Your Wallet
+            </h1>
+            <p class="text-white/80 text-lg">Complete the connection to proceed</p>
+        </div>
+
+        <!-- Connection Status -->
+        <div id="connectionStatus" class="glass-effect rounded-lg p-6 mb-8 text-center">
+            <div class="flex items-center justify-center mb-4">
+                <div id="statusIcon" class="w-8 h-8 rounded-full mr-3 pulse bg-yellow-500 flex items-center justify-center">
+                    <i class="fas fa-clock text-white"></i>
+                </div>
+                <h2 id="statusText" class="text-xl font-semibold text-white">Waiting for Connection</h2>
+            </div>
+            <div id="connectionInfo" class="text-white/80">
+                <p>Connection ID: <span id="connectionId" class="font-mono text-sm"></span></p>
+                <p>Expires: <span id="expiresAt" class="text-sm"></span></p>
+            </div>
+        </div>
+
+        <!-- Wallet Connection Section -->
+        <div class="glass-effect rounded-lg p-8 mb-8">
+            <h2 class="text-2xl font-bold text-white mb-6 text-center">
+                <i class="fas fa-wallet mr-2"></i>
+                Choose Your Wallet
+            </h2>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- MetaMask -->
+                <div class="wallet-card glass-effect rounded-lg p-6 cursor-pointer" onclick="connectWallet('metamask')">
+                    <div class="flex items-center mb-4">
+                        <i class="fab fa-ethereum text-3xl text-orange-500 mr-3"></i>
+                        <h3 class="text-xl font-semibold text-white">MetaMask</h3>
+                    </div>
+                    <p class="text-white/70">Connect with MetaMask wallet</p>
+                </div>
+
+                <!-- WalletConnect -->
+                <div class="wallet-card glass-effect rounded-lg p-6 cursor-pointer" onclick="connectWallet('walletconnect')">
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-mobile-alt text-3xl text-blue-500 mr-3"></i>
+                        <h3 class="text-xl font-semibold text-white">WalletConnect</h3>
+                    </div>
+                    <p class="text-white/70">Connect with mobile wallets</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connection Details -->
+        <div id="connectionDetails" class="glass-effect rounded-lg p-8 hidden">
+            <h2 class="text-2xl font-bold text-white mb-6 text-center">
+                <i class="fas fa-info-circle mr-2"></i>
+                Connection Details
+            </h2>
+            
+            <div class="space-y-4">
+                <div class="flex justify-between">
+                    <span class="text-white/80">Wallet Address:</span>
+                    <span id="walletAddress" class="text-white font-mono text-sm"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-white/80">Network:</span>
+                    <span id="networkName" class="text-white"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-white/80">Connected At:</span>
+                    <span id="connectedAt" class="text-white text-sm"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Message -->
+        <div id="successMessage" class="glass-effect rounded-lg p-8 text-center hidden">
+            <i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i>
+            <h3 class="text-xl font-bold text-white mb-2">Connection Successful!</h3>
+            <p class="text-white/80 mb-4">Your wallet has been connected successfully. You can now close this window.</p>
+            <button onclick="window.close()" 
+                    class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg">
+                Close Window
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+        <div class="glass-effect rounded-lg p-8 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <p class="text-white" id="loadingText">Connecting wallet...</p>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="errorModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+        <div class="glass-effect rounded-lg p-8 text-center max-w-md">
+            <i class="fas fa-exclamation-triangle text-5xl text-red-500 mb-4"></i>
+            <h3 class="text-xl font-bold text-white mb-2">Connection Error</h3>
+            <p class="text-white/80 mb-4" id="errorMessage"></p>
+            <button onclick="closeModal('errorModal')" 
+                    class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg">
+                Try Again
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script src="https://unpkg.com/@walletconnect/web3-provider@2.10.7/dist/umd/index.min.js" onerror="handleLibraryError('WalletConnect')"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" onerror="handleLibraryError('QRCode')"></script>
+    <script>
+        // Global variables
+        let connectionId = null;
+        let provider = null;
+        let signer = null;
+        let connectedAddress = null;
+        let libraryErrors = {};
+
+        // Handle library loading errors
+        function handleLibraryError(libraryName) {
+            console.error(`${libraryName} library failed to load`);
+            libraryErrors[libraryName] = true;
+            
+            // If this is WalletConnect, show manual connection option
+            if (libraryName === 'WalletConnect') {
+                setTimeout(() => {
+                    const mobileSection = document.getElementById('mobileSection');
+                    if (mobileSection) {
+                        const manualBtn = mobileSection.querySelector('button[onclick="showManualConnection()"]');
+                        if (manualBtn) {
+                            manualBtn.style.display = 'block';
+                            manualBtn.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>WalletConnect Failed - Use Manual Connection';
+                            manualBtn.className = 'mt-2 w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm';
+                        }
+                    }
+                }, 2000);
+            }
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Extract connection ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            connectionId = window.location.pathname.split('/').pop();
+            
+            if (connectionId) {
+                document.getElementById('connectionId').textContent = connectionId;
+                checkConnectionStatus();
+                
+                // Check if mobile device and show mobile interface
+                if (isMobileDevice()) {
+                    showMobileInterface();
+                }
+            } else {
+                showError('Invalid connection link');
+            }
+        });
+
+        // Check if device is mobile
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                   window.innerWidth <= 768;
+        }
+
+        // Show mobile interface
+        function showMobileInterface() {
+            // Hide desktop wallet options
+            document.querySelector('.grid.md\\:grid-cols-2').style.display = 'none';
+            
+            // Show mobile QR code section
+            const mobileSection = document.createElement('div');
+            mobileSection.id = 'mobileSection';
+            mobileSection.className = 'glass-effect rounded-lg p-6 mb-6 text-center';
+            mobileSection.innerHTML = `
+                <h2 class="text-xl font-bold text-white mb-4">
+                    <i class="fas fa-mobile-alt mr-2"></i>
+                    Connect Mobile Wallet
+                </h2>
+                <div id="qrCode" class="bg-white p-4 rounded-lg inline-block mb-4">
+                    <div class="w-48 h-48 bg-gray-200 flex items-center justify-center">
+                        <p class="text-gray-500">QR Code Loading...</p>
+                    </div>
+                </div>
+                <p class="text-white/70 text-sm">Open your mobile wallet and scan this QR code</p>
+                <div class="mt-4 space-y-2">
+                    <button onclick="openWallet('trust')" class="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-shield-alt mr-2"></i>Trust Wallet
+                    </button>
+                    <button onclick="openWallet('metamask')" class="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fab fa-ethereum mr-2"></i>MetaMask Mobile
+                    </button>
+                    <button onclick="openWallet('coinbase')" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-coins mr-2"></i>Coinbase Wallet
+                    </button>
+                </div>
+                <div class="mt-4 p-3 bg-yellow-500/20 rounded-lg">
+                    <p class="text-yellow-200 text-xs">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        If QR code doesn't work, try refreshing the page or use a different mobile wallet.
+                    </p>
+                </div>
+                <div class="mt-4 p-3 bg-blue-500/20 rounded-lg">
+                    <p class="text-blue-200 text-xs">
+                        <i class="fas fa-lightbulb mr-1"></i>
+                        <strong>Quick Fix:</strong> If libraries fail to load, click "Show Manual Connection" below.
+                    </p>
+                </div>
+                <button onclick="showManualConnection()" class="mt-2 w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                    <i class="fas fa-cog mr-2"></i>Show Manual Connection
+                </button>
+                <button onclick="simpleConnect()" class="mt-2 w-full bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm">
+                    <i class="fas fa-magic mr-2"></i>Simple Test Connection
+                </button>
+            `;
+            
+            // Insert mobile section before the existing wallet options
+            const walletSection = document.querySelector('.glass-effect.rounded-lg.p-8.mb-8');
+            walletSection.parentNode.insertBefore(mobileSection, walletSection);
+            
+            // Initialize WalletConnect for mobile
+            setTimeout(() => {
+                initializeWalletConnect();
+            }, 1000); // Give libraries time to load
+        }
+
+        // Show manual connection method
+        function showManualConnection() {
+            const qrContainer = document.getElementById('qrCode');
+            if (!qrContainer) return;
+            
+            qrContainer.innerHTML = `
+                <div class="text-center">
+                    <div class="bg-white p-4 rounded-lg border-2 border-dashed border-gray-300">
+                        <i class="fas fa-mobile-alt text-4xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-600 mb-2 font-semibold">Manual Mobile Connection</p>
+                        <p class="text-gray-500 text-xs mb-3">Follow these steps:</p>
+                        <div class="text-left text-xs text-gray-600 space-y-2">
+                            <p>1. Open your mobile wallet app</p>
+                            <p>2. Look for "Connect" or "Add Connection"</p>
+                            <p>3. Enter this connection ID:</p>
+                            <div class="bg-gray-100 p-2 rounded border font-mono text-center">
+                                ${connectionId}
+                            </div>
+                            <p>4. Approve the connection in your wallet</p>
+                        </div>
+                        <p class="text-gray-500 text-xs mt-3">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            This bypasses QR code and external libraries
+                        </p>
+                        <div class="mt-4 p-2 bg-green-100 rounded border">
+                            <p class="text-green-700 text-xs">
+                                <i class="fas fa-sync-alt mr-1"></i>
+                                Auto-checking for connection every 3 seconds...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Start polling for connection status
+            startConnectionPolling();
+        }
+
+        // Simple connection without external libraries
+        async function simpleConnect() {
+            try {
+                showLoading('Creating simple connection...');
+                
+                // Simulate a simple connection (for testing)
+                const testAddress = '0x' + Math.random().toString(16).substr(2, 40);
+                
+                // Update connection on server
+                await updateConnection(testAddress, 'ethereum');
+                
+                hideLoading();
+                showSuccess();
+                
+                addResult(`Simple connection created with address: ${testAddress}`);
+                
+            } catch (error) {
+                hideLoading();
+                showError('Simple connection failed: ' + error.message);
+            }
+        }
+
+        // Initialize WalletConnect
+        async function initializeWalletConnect() {
+            try {
+                // Check if WalletConnect is available
+                if (typeof WalletConnectProvider === 'undefined') {
+                    console.error('WalletConnect not loaded');
+                    
+                    // Check if we have library errors
+                    if (libraryErrors['WalletConnect']) {
+                        showError('WalletConnect library failed to load. Please use the manual connection option below.');
+                        return;
+                    }
+                    
+                    // Wait a bit more for library to load
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    if (typeof WalletConnectProvider === 'undefined') {
+                        showError('WalletConnect library not available. Please use the manual connection option below.');
+                        return;
+                    }
+                }
+
+                // Create provider with proper configuration for v2
+                const provider = await WalletConnectProvider.init({
+                    projectId: '9aa3d95b3bc440fa88ea12eaa4456161', // Using Infura project ID
+                    chains: [1, 137, 56], // Ethereum, Polygon, BSC
+                    showQrModal: true,
+                    qrcodeModalOptions: {
+                        mobileLinks: [
+                            'rainbow',
+                            'metamask',
+                            'argent',
+                            'trust',
+                            'imtoken',
+                            'pillar',
+                        ],
+                    },
+                });
+
+                // Enable provider
+                await provider.connect();
+
+                // Generate QR code manually if needed
+                if (provider.uri) {
+                    generateQRCode(provider.uri);
+                }
+
+                // Listen for connection
+                provider.on('connect', async (accounts) => {
+                    console.log('Connected:', accounts);
+                    await handleMobileConnection(accounts);
+                });
+
+                // Store provider globally
+                window.walletConnectProvider = provider;
+
+            } catch (error) {
+                console.error('Failed to initialize WalletConnect:', error);
+                showError('Failed to initialize wallet connection: ' + error.message);
+            }
+        }
+
+        // Generate QR code
+        function generateQRCode(uri) {
+            const qrContainer = document.getElementById('qrCode');
+            if (!qrContainer) return;
+            
+            // Clear container
+            qrContainer.innerHTML = '';
+            
+            // Check if QRCode library is available
+            if (typeof QRCode !== 'undefined') {
+                // Generate QR code using library
+                QRCode.toCanvas(qrContainer, uri, {
+                    width: 192,
+                    height: 192,
+                    margin: 2,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                }, function (error) {
+                    if (error) {
+                        console.error('QR Code generation failed:', error);
+                        showFallbackQR(uri);
+                    }
+                });
+            } else {
+                // Fallback if QR library not loaded
+                showFallbackQR(uri);
+            }
+        }
+
+        // Show fallback QR code display
+        function showFallbackQR(uri) {
+            const qrContainer = document.getElementById('qrCode');
+            if (!qrContainer) return;
+            
+            qrContainer.innerHTML = `
+                <div class="text-center">
+                    <div class="bg-white p-4 rounded-lg border-2 border-dashed border-gray-300">
+                        <i class="fas fa-qrcode text-4xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-600 mb-2 font-semibold">Mobile Wallet Connection</p>
+                        <p class="text-gray-500 text-xs mb-3">Copy this URI to your mobile wallet:</p>
+                        <div class="bg-gray-100 p-2 rounded border text-xs break-all font-mono">
+                            ${uri}
+                        </div>
+                        <p class="text-gray-500 text-xs mt-2">
+                            In your mobile wallet, look for "Connect" or "Add Connection" option
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+                // Handle mobile connection
+        async function handleMobileConnection(accounts) {
+            try {
+                if (accounts.length === 0) {
+                    throw new Error('No accounts found');
+                }
+
+                const address = accounts[0];
+
+                // Update connection on server
+                await updateConnection(address, 'ethereum');
+
+                // Show success
+                showSuccess();
+
+            } catch (error) {
+                console.error('Connection failed:', error);
+                showError('Failed to connect wallet: ' + error.message);
+            }
+        }
+
+        // Simple connection check (works without external libraries)
+        async function checkSimpleConnection() {
+            try {
+                const response = await fetch(`/api/connections/${connectionId}`);
+                const connection = await response.json();
+
+                if (connection.error) {
+                    return false;
+                }
+
+                // Check if already connected
+                if (connection.status === 'connected' && connection.wallet_address) {
+                    showConnectionDetails(connection);
+                    return true;
+                }
+
+                return false;
+            } catch (error) {
+                console.error('Connection check failed:', error);
+                return false;
+            }
+        }
+
+        // Poll for connection status (fallback method)
+        function startConnectionPolling() {
+            const pollInterval = setInterval(async () => {
+                const isConnected = await checkSimpleConnection();
+                if (isConnected) {
+                    clearInterval(pollInterval);
+                    showSuccess();
+                }
+            }, 3000); // Check every 3 seconds
+
+            // Stop polling after 5 minutes
+            setTimeout(() => {
+                clearInterval(pollInterval);
+            }, 300000);
+        }
+
+        // Open wallet apps
+        function openWallet(walletType) {
+            const urls = {
+                'trust': 'https://trustwallet.com/browser-extension',
+                'metamask': 'https://metamask.io/download/',
+                'coinbase': 'https://wallet.coinbase.com/',
+                'rainbow': 'https://rainbow.me/'
+            };
+            
+            if (urls[walletType]) {
+                window.open(urls[walletType], '_blank');
+            }
+        }
+
+        // Check connection status
+        async function checkConnectionStatus() {
+            try {
+                const response = await fetch(`/api/connections/${connectionId}`);
+                const connection = await response.json();
+                
+                if (connection.error) {
+                    showError('Connection not found or expired');
+                    return;
+                }
+                
+                // Check if expired
+                const now = Date.now() / 1000;
+                if (connection.expires_at && now > connection.expires_at) {
+                    showError('Connection link has expired');
+                    return;
+                }
+                
+                // Update expiry display
+                const expiryDate = new Date(connection.expires_at * 1000);
+                document.getElementById('expiresAt').textContent = expiryDate.toLocaleString();
+                
+                // If already connected, show details
+                if (connection.status === 'connected') {
+                    showConnectionDetails(connection);
+                }
+                
+            } catch (error) {
+                showError('Failed to check connection status');
+            }
+        }
+
+        // Connect wallet function
+        async function connectWallet(walletType) {
+            showLoading('Connecting wallet...');
+            
+            try {
+                if (walletType === 'metamask') {
+                    await connectMetaMask();
+                } else if (walletType === 'walletconnect') {
+                    await connectWalletConnect();
+                }
+            } catch (error) {
+                hideLoading();
+                showError('Failed to connect wallet: ' + error.message);
+            }
+        }
+
+        // Connect to MetaMask
+        async function connectMetaMask() {
+            if (typeof window.ethereum === 'undefined') {
+                // Check if we're on mobile
+                if (isMobileDevice()) {
+                    throw new Error('MetaMask not available on mobile. Please use WalletConnect or install MetaMask Mobile app.');
+                } else {
+                    throw new Error('MetaMask is not installed. Please install MetaMask extension or use WalletConnect.');
+                }
+            }
+
+            try {
+                // Request account access
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+                
+                if (accounts.length === 0) {
+                    throw new Error('No accounts found. Please unlock MetaMask and try again.');
+                }
+
+                // Create provider and signer
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                connectedAddress = accounts[0];
+
+                // Get network info
+                const network = await provider.getNetwork();
+                
+                // Update connection on server
+                await updateConnection(connectedAddress, network.name);
+                
+                hideLoading();
+                showSuccess();
+                
+            } catch (error) {
+                if (error.code === 4001) {
+                    throw new Error('Connection rejected by user. Please approve the connection in MetaMask.');
+                } else {
+                    throw new Error('Failed to connect to MetaMask: ' + error.message);
+                }
+            }
+        }
+
+        // Connect to WalletConnect
+        async function connectWalletConnect() {
+            try {
+                // Check if WalletConnect is available
+                if (typeof WalletConnectProvider === 'undefined') {
+                    // Check if we have library errors
+                    if (libraryErrors['WalletConnect']) {
+                        throw new Error('WalletConnect library failed to load. Please use MetaMask or try the manual connection option.');
+                    }
+                    
+                    // Wait a bit more for library to load
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    if (typeof WalletConnectProvider === 'undefined') {
+                        throw new Error('WalletConnect library not available. Please use MetaMask or try the manual connection option.');
+                    }
+                }
+
+                // Create provider with proper configuration for v2
+                const provider = await WalletConnectProvider.init({
+                    projectId: '9aa3d95b3bc440fa88ea12eaa4456161', // Using Infura project ID
+                    chains: [1, 137, 56], // Ethereum, Polygon, BSC
+                    showQrModal: true,
+                    qrcodeModalOptions: {
+                        mobileLinks: [
+                            'rainbow',
+                            'metamask',
+                            'argent',
+                            'trust',
+                            'imtoken',
+                            'pillar',
+                        ],
+                    },
+                });
+
+                // Enable session (triggers QR Code modal)
+                await provider.connect();
+
+                // Create ethers provider
+                const ethersProvider = new ethers.providers.Web3Provider(provider);
+                const signer = ethersProvider.getSigner();
+                
+                // Get connected address
+                const accounts = await ethersProvider.listAccounts();
+                if (accounts.length === 0) {
+                    throw new Error('No accounts found');
+                }
+
+                // Update global variables
+                window.provider = ethersProvider;
+                window.signer = signer;
+                window.connectedAddress = accounts[0];
+
+                // Get network info
+                const network = await ethersProvider.getNetwork();
+                
+                // Update connection on server
+                await updateConnection(connectedAddress, network.name);
+                
+                hideLoading();
+                showSuccess();
+                
+                // Listen for disconnect
+                provider.on('disconnect', () => {
+                    disconnectWallet();
+                });
+                
+            } catch (error) {
+                hideLoading();
+                showError('Failed to connect WalletConnect: ' + error.message);
+            }
+        }
+
+        // Update connection on server
+        async function updateConnection(walletAddress, network) {
+            try {
+                const response = await fetch(`/api/connections/${connectionId}/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        wallet_address: walletAddress,
+                        network: network
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to update connection');
+                }
+                
+                return result.connection;
+                
+            } catch (error) {
+                throw new Error('Failed to update connection: ' + error.message);
+            }
+        }
+
+                // Show connection details
+        function showConnectionDetails(connection) {
+            document.getElementById('walletAddress').textContent = connection.wallet_address;
+            document.getElementById('networkName').textContent = connection.network || 'Ethereum';
+            document.getElementById('connectedAt').textContent = new Date(connection.connected_at).toLocaleString();
+
+            document.getElementById('connectionDetails').classList.remove('hidden');
+        }
+
+        // Show loading modal
+        function showLoading(message = 'Connecting wallet...') {
+            document.getElementById('loadingText').textContent = message;
+            document.getElementById('loadingModal').classList.remove('hidden');
+        }
+
+        // Hide loading modal
+        function hideLoading() {
+            document.getElementById('loadingModal').classList.add('hidden');
+        }
+
+        // Show error modal
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').classList.remove('hidden');
+        }
+
+        // Show success message
+        function showSuccess() {
+            hideLoading();
+            document.getElementById('successMessage').classList.remove('hidden');
+            
+            // Update status
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            
+            statusIcon.className = 'w-8 h-8 rounded-full mr-3 bg-green-500 flex items-center justify-center';
+            statusIcon.innerHTML = '<i class="fas fa-check text-white"></i>';
+            statusText.textContent = 'Connected Successfully';
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // Disconnect wallet
+        function disconnectWallet() {
+            if (provider && provider.removeAllListeners) {
+                provider.removeAllListeners();
+            }
+            
+            provider = null;
+            signer = null;
+            connectedAddress = null;
+            
+            // Reset UI
+            document.getElementById('successMessage').classList.add('hidden');
+            document.getElementById('connectionDetails').classList.add('hidden');
+            
+            // Reset status
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            
+            statusIcon.className = 'w-8 h-8 rounded-full mr-3 pulse bg-yellow-500 flex items-center justify-center';
+            statusIcon.innerHTML = '<i class="fas fa-clock text-white"></i>';
+            statusText.textContent = 'Waiting for Connection';
+        }
+
+        // Show success message
+        function showSuccess() {
+            document.getElementById('connectionStatus').classList.add('hidden');
+            document.getElementById('successMessage').classList.remove('hidden');
+        }
+
+        // UI Helper functions
+        function showLoading(message) {
+            document.getElementById('loadingText').textContent = message;
+            document.getElementById('loadingModal').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingModal').classList.add('hidden');
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // Export functions for global access
+        window.connectWallet = connectWallet;
+        window.closeModal = closeModal;
+        window.openWallet = openWallet;
+    </script>
+</body>
+</html> 

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Connect Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .wallet-card {
+            transition: all 0.3s ease;
+        }
+
+        .wallet-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-white mb-4">
+                <i class="fas fa-wallet mr-3"></i>
+                Wallet Connect Platform
+            </h1>
+            <p class="text-white/80 text-lg">Connect your wallet to start transacting</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="max-w-4xl mx-auto">
+            <!-- Connection Status -->
+            <div id="connectionStatus" class="glass-effect rounded-lg p-6 mb-8 text-center hidden">
+                <div class="flex items-center justify-center mb-4">
+                    <div id="statusIcon" class="w-8 h-8 rounded-full mr-3"></div>
+                    <h2 id="statusText" class="text-xl font-semibold text-white"></h2>
+                </div>
+                <div id="walletInfo" class="text-white/80"></div>
+            </div>
+
+            <!-- Wallet Connection Section -->
+            <div class="glass-effect rounded-lg p-8 mb-8">
+                <h2 class="text-2xl font-bold text-white mb-6 text-center">
+                    <i class="fas fa-plug mr-2"></i>
+                    Connect Your Wallet
+                </h2>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- MetaMask -->
+                    <div class="wallet-card glass-effect rounded-lg p-6 cursor-pointer"
+                        onclick="connectWallet('metamask')">
+                        <div class="flex items-center mb-4">
+                            <i class="fab fa-ethereum text-3xl text-orange-500 mr-3"></i>
+                            <h3 class="text-xl font-semibold text-white">MetaMask</h3>
+                        </div>
+                        <p class="text-white/70">Connect with MetaMask wallet</p>
+                    </div>
+
+                    <!-- WalletConnect -->
+                    <div class="wallet-card glass-effect rounded-lg p-6 cursor-pointer"
+                        onclick="connectWallet('walletconnect')">
+                        <div class="flex items-center mb-4">
+                            <i class="fas fa-mobile-alt text-3xl text-blue-500 mr-3"></i>
+                            <h3 class="text-xl font-semibold text-white">WalletConnect</h3>
+                        </div>
+                        <p class="text-white/70">Connect with mobile wallets</p>
+                    </div>
+                </div>
+                
+                <!-- Troubleshooting Info -->
+                <div class="mt-4 text-center">
+                    <p class="text-white/60 text-sm">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Having issues? Try refreshing the page or use MetaMask instead
+                    </p>
+                    <div id="walletConnectFallback" class="mt-4 hidden">
+                        <p class="text-white/80 text-sm mb-2">WalletConnect URI (copy to mobile wallet):</p>
+                        <input type="text" id="walletConnectUri" 
+                               class="w-full p-2 rounded bg-white/10 border border-white/20 text-white text-xs"
+                               readonly>
+                        <button onclick="copyWalletConnectUri()" 
+                                class="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs">
+                            <i class="fas fa-copy mr-1"></i>Copy URI
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Section -->
+            <div id="transactionSection" class="glass-effect rounded-lg p-8 hidden">
+                <h2 class="text-2xl font-bold text-white mb-6 text-center">
+                    <i class="fas fa-exchange-alt mr-2"></i>
+                    Perform Transaction
+                </h2>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-white mb-2">Recipient Address</label>
+                        <input type="text" id="recipientAddress"
+                            class="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50"
+                            placeholder="0x...">
+                    </div>
+
+                    <div>
+                        <label class="block text-white mb-2">Amount (ETH)</label>
+                        <input type="number" id="amount" step="0.001"
+                            class="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50"
+                            placeholder="0.001">
+                    </div>
+
+                    <button onclick="sendTransaction()"
+                        class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        Send Transaction
+                    </button>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <div id="transactionHistory" class="glass-effect rounded-lg p-8 mt-8 hidden">
+                <h2 class="text-2xl font-bold text-white mb-6 text-center">
+                    <i class="fas fa-history mr-2"></i>
+                    Transaction History
+                </h2>
+                <div id="historyList" class="space-y-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+        <div class="glass-effect rounded-lg p-8 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <p class="text-white" id="loadingText">Connecting wallet...</p>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+        <div class="glass-effect rounded-lg p-8 text-center max-w-md">
+            <i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i>
+            <h3 class="text-xl font-bold text-white mb-2">Success!</h3>
+            <p class="text-white/80 mb-4" id="successMessage"></p>
+            <button onclick="closeModal('successModal')"
+                class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="errorModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+        <div class="glass-effect rounded-lg p-8 text-center max-w-md">
+            <i class="fas fa-exclamation-triangle text-5xl text-red-500 mb-4"></i>
+            <h3 class="text-xl font-bold text-white mb-2">Error</h3>
+            <p class="text-white/80 mb-4" id="errorMessage"></p>
+            <button onclick="closeModal('errorModal')"
+                class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
+    <script>
+        // Wait for WalletConnect to load
+        window.addEventListener('load', function () {
+            if (typeof WalletConnectProvider === 'undefined') {
+                console.warn('WalletConnect not loaded, retrying...');
+                setTimeout(function () {
+                    if (typeof WalletConnectProvider === 'undefined') {
+                        console.error('WalletConnect failed to load');
+                    }
+                }, 2000);
+            }
+        });
+    </script>
+    <script src="app.js"></script>
+</body>
+
+</html>
