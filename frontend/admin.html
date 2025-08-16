@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Wallet Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-white mb-4">
+                <i class="fas fa-cog mr-3"></i>
+                Admin Dashboard
+            </h1>
+            <p class="text-white/80 text-lg">Manage wallet connections and transactions</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid md:grid-cols-4 gap-6 mb-8">
+            <div class="glass-effect rounded-lg p-6 text-center">
+                <i class="fas fa-users text-3xl text-blue-500 mb-2"></i>
+                <h3 class="text-white font-bold text-2xl" id="totalConnections">0</h3>
+                <p class="text-white/70">Total Connections</p>
+            </div>
+            <div class="glass-effect rounded-lg p-6 text-center">
+                <i class="fas fa-link text-3xl text-green-500 mb-2"></i>
+                <h3 class="text-white font-bold text-2xl" id="activeConnections">0</h3>
+                <p class="text-white/70">Active Connections</p>
+            </div>
+            <div class="glass-effect rounded-lg p-6 text-center">
+                <i class="fas fa-exchange-alt text-3xl text-purple-500 mb-2"></i>
+                <h3 class="text-white font-bold text-2xl" id="totalTransactions">0</h3>
+                <p class="text-white/70">Total Transactions</p>
+            </div>
+            <div class="glass-effect rounded-lg p-6 text-center">
+                <i class="fas fa-chart-line text-3xl text-orange-500 mb-2"></i>
+                <h3 class="text-white font-bold text-2xl" id="successRate">0%</h3>
+                <p class="text-white/70">Success Rate</p>
+            </div>
+        </div>
+
+        <!-- Create Connection Section -->
+        <div class="glass-effect rounded-lg p-8 mb-8">
+            <h2 class="text-2xl font-bold text-white mb-6">
+                <i class="fas fa-plus mr-2"></i>
+                Create New Connection
+            </h2>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-white mb-2">User ID</label>
+                    <input type="text" id="userId" 
+                           class="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50"
+                           placeholder="Enter user ID">
+                </div>
+                <div>
+                    <label class="block text-white mb-2">Metadata (Optional)</label>
+                    <input type="text" id="metadata" 
+                           class="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50"
+                           placeholder="Additional info">
+                </div>
+            </div>
+            
+            <button onclick="createConnection()" 
+                    class="mt-6 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
+                <i class="fas fa-link mr-2"></i>
+                Generate Connection Link
+            </button>
+            
+            <div id="connectionResult" class="mt-4 hidden">
+                <div class="glass-effect rounded-lg p-4">
+                    <h3 class="text-white font-semibold mb-2">Connection Link Generated:</h3>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="connectionLink" 
+                               class="flex-1 p-2 rounded bg-white/10 border border-white/20 text-white text-sm"
+                               readonly>
+                        <button onclick="copyLink()" 
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">
+                            <i class="fas fa-copy mr-1"></i>Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connections List -->
+        <div class="glass-effect rounded-lg p-8 mb-8">
+            <h2 class="text-2xl font-bold text-white mb-6">
+                <i class="fas fa-list mr-2"></i>
+                Recent Connections
+            </h2>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-white">
+                    <thead>
+                        <tr class="border-b border-white/20">
+                            <th class="text-left p-3">Connection ID</th>
+                            <th class="text-left p-3">User ID</th>
+                            <th class="text-left p-3">Status</th>
+                            <th class="text-left p-3">Wallet Address</th>
+                            <th class="text-left p-3">Created</th>
+                            <th class="text-left p-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="connectionsTable">
+                        <!-- Connections will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Loading Modal -->
+        <div id="loadingModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+            <div class="glass-effect rounded-lg p-8 text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                <p class="text-white" id="loadingText">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            loadConnections();
+        });
+
+        // Load platform statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const stats = result.stats;
+                    document.getElementById('totalConnections').textContent = stats.total_connections;
+                    document.getElementById('activeConnections').textContent = stats.active_connections;
+                    document.getElementById('totalTransactions').textContent = stats.total_transactions;
+                    document.getElementById('successRate').textContent = stats.success_rate.toFixed(1) + '%';
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        // Create new connection
+        async function createConnection() {
+            const userId = document.getElementById('userId').value.trim();
+            const metadata = document.getElementById('metadata').value.trim();
+            
+            if (!userId) {
+                alert('Please enter a user ID');
+                return;
+            }
+            
+            showLoading('Creating connection...');
+            
+            try {
+                const response = await fetch('/api/connect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        metadata: metadata ? { note: metadata } : {}
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('connectionLink').value = result.connection_link;
+                    document.getElementById('connectionResult').classList.remove('hidden');
+                    
+                    // Clear form
+                    document.getElementById('userId').value = '';
+                    document.getElementById('metadata').value = '';
+                    
+                    // Reload data
+                    loadStats();
+                    loadConnections();
+                } else {
+                    alert('Failed to create connection: ' + result.error);
+                }
+            } catch (error) {
+                alert('Failed to create connection: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Copy connection link
+        function copyLink() {
+            const linkInput = document.getElementById('connectionLink');
+            linkInput.select();
+            document.execCommand('copy');
+            alert('Link copied to clipboard!');
+        }
+
+        // Load connections
+        async function loadConnections() {
+            try {
+                // For now, we'll show a placeholder since we need to implement this endpoint
+                const tbody = document.getElementById('connectionsTable');
+                tbody.innerHTML = `
+                    <tr class="border-b border-white/10">
+                        <td class="p-3 text-white/60 text-center" colspan="6">
+                            Connections will be loaded here when the API is fully implemented
+                        </td>
+                    </tr>
+                `;
+            } catch (error) {
+                console.error('Failed to load connections:', error);
+            }
+        }
+
+        // UI Helper functions
+        function showLoading(message) {
+            document.getElementById('loadingText').textContent = message;
+            document.getElementById('loadingModal').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingModal').classList.add('hidden');
+        }
+
+        // Export functions for global access
+        window.createConnection = createConnection;
+        window.copyLink = copyLink;
+    </script>
+</body>
+</html>

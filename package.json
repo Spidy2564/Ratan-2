@@ -1,0 +1,23 @@
+{
+  "name": "wallet-platform",
+  "version": "1.0.0",
+  "description": "A modern Web3 platform for wallet connections and transactions",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "vercel build",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "web3",
+    "wallet",
+    "blockchain",
+    "ethereum",
+    "metamask"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "vercel": "^32.0.0"
+  }
+}
